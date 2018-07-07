@@ -1,7 +1,7 @@
 [package]
-authors = ["Alberto Cole <acpii2005@gmail.com>"]
-name = "live_casino_gameplay_ws"
+name = "websocket"
 version = "0.1.0"
+authors = ["Nikolay Kim <fafhrd91@gmail.com>"]
 [dependencies]
 env_logger = "*"
 futures = "0.1"
