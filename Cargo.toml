@@ -1,0 +1,10 @@
+[package]
+authors = ["Alberto Cole <acpii2005@gmail.com>"]
+name = "live_casino_gameplay_ws"
+version = "0.1.0"
+[dependencies]
+env_logger = "*"
+futures = "0.1"
+tokio-core = "0.1"
+actix = "0.5"
+actix-web = "^0.6"
