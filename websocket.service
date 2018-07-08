@@ -1,0 +1,18 @@
+#sudo systemctl status websocket.service
+#/etc/systemd/system/websocket.service
+[Unit]
+Description=Rust WebSocket
+After=network.target
+
+[Service]
+ExecStart=/root/.cargo/bin/cargo run --manifest-path /root/gaming-websocket/Cargo.toml
+#ExecStop=/home/george/.npm-global/bin/forever stop /root/node/node_modules/.bin/www
+#Restart=always
+#RestartSec=10                       # Restart service after 10 seconds if node service crashes
+#StandardOutput=syslog               # Output to syslog
+#StandardError=syslog                # Output to syslog
+SyslogIdentifier=rust-websocket
+
+
+[Install]
+WantedBy=multi-user.target

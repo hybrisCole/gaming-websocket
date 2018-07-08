@@ -3,8 +3,8 @@ name = "websocket"
 version = "0.1.0"
 authors = ["Nikolay Kim <fafhrd91@gmail.com>"]
 [dependencies]
-env_logger = "*"
+env_logger = "0.5.10"
 futures = "0.1"
 tokio-core = "0.1"
 actix = "0.5"
-actix-web = "^0.6"
+actix-web = "0.6"
