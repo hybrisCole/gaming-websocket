@@ -1,63 +1,67 @@
-//! Simple echo websocket server.
-//! Open `http://localhost:8080/ws/index.html` in browser
-//! or [python console client](https://github.com/actix/examples/blob/master/websocket/websocket-client.py)
-//! could be used for testing.
-
-#![allow(unused_variables)]
-extern crate actix;
 extern crate actix_web;
+#[macro_use]
+extern crate log;
 extern crate env_logger;
 
-use actix::prelude::*;
-use actix_web::{
-  http, middleware, server, ws, App, Error, HttpRequest, HttpResponse,
-};
+use actix_web::actix::*;
+use actix_web::server::HttpServer;
+use actix_web::{middleware, ws, App, Error, HttpRequest, HttpResponse};
 
-/// do websocket handshake and start `MyWebSocket` actor
-fn ws_index(r: HttpRequest) -> Result<HttpResponse, Error> {
-  ws::start(r, MyWebSocket)
+#[derive(Clone, Debug)]
+pub struct Msg {
+  inner: Vec<u32>,
+}
+impl Default for Msg {
+  fn default() -> Msg {
+    Msg {
+      inner: vec![10; 10000],
+    }
+  }
 }
 
-/// websocket connection is long running connection, it easier
-/// to handle with an actor
-struct MyWebSocket;
+pub struct WsSession;
 
-impl Actor for MyWebSocket {
-  type Context = ws::WebsocketContext<Self>;
+impl Actor for WsSession {
+  type Context = ws::WebsocketContext<Self, ()>;
+
+  fn started(&mut self, _ctx: &mut Self::Context) {
+    info!("websocket sesssion started");
+  }
+
+  fn stopped(&mut self, _ctx: &mut Self::Context) {
+    info!("websocket sesssion ended");
+  }
 }
 
-/// Handler for `ws::Message`
-impl StreamHandler<ws::Message, ws::ProtocolError> for MyWebSocket {
+impl StreamHandler<ws::Message, ws::ProtocolError> for WsSession {
   fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
-    // process websocket messages
-    println!("WS: {:?}", msg);
     match msg {
       ws::Message::Ping(msg) => ctx.pong(&msg),
+      ws::Message::Pong(msg) => ctx.ping(&msg),
       ws::Message::Text(text) => ctx.text(text),
       ws::Message::Binary(bin) => ctx.binary(bin),
       ws::Message::Close(_) => {
         ctx.stop();
       }
-      _ => (),
     }
   }
+}
+
+pub fn ws_handler(r: &HttpRequest) -> Result<HttpResponse, Error> {
+  ws::start(r, WsSession)
 }
 
 fn main() {
   ::std::env::set_var("RUST_LOG", "actix_web=info");
   env_logger::init();
-  let sys = actix::System::new("ws-example");
 
-  server::new(
-    || App::new()
-      // enable logger
-      .middleware(middleware::Logger::default())
-      // websocket route
-      .resource("/ws/", |r| r.method(http::Method::GET).f(ws_index)))
-    // start http server on 127.0.0.1:8080
-    .bind("127.0.0.1:8080").unwrap()
+  let sys = System::new("game-socket");
+  HttpServer::new(move || App::new()
+    .middleware(middleware::Logger::default())
+    .resource("/ws/", |r| r.route().f(ws_handler)))
+    .bind("127.0.0.1:8080")
+    .unwrap()
     .start();
 
-  println!("Started http server: 127.0.0.1:8080");
   let _ = sys.run();
 }
