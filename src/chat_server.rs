@@ -1,7 +1,7 @@
 //! `ChatServer` is an actor. It maintains list of connection client session.
 //! And manages available rooms. Peers send messages to other peers in same
 //! room through `ChatServer`.
-
+extern crate serde_json;
 use rand::{self, Rng, ThreadRng};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -13,6 +13,7 @@ pub struct MessageStruct(pub String);
 impl Message for MessageStruct {
   type Result = ();
 }
+
 
 pub struct Connect {
   pub addr: Recipient<MessageStruct>,
@@ -31,11 +32,8 @@ impl Message for Disconnect {
 }
 
 pub struct ClientMessage {
-  /// Id of the client session
   pub id: usize,
-  /// Peer message
   pub msg: String,
-  /// Room name
   pub room: String,
 }
 
@@ -43,18 +41,14 @@ impl Message for ClientMessage {
   type Result = ();
 }
 
-/// List of available rooms
 pub struct ListRooms;
 
 impl Message for ListRooms {
   type Result = Vec<String>;
 }
 
-/// Join room, if room does not exists create new one.
 pub struct Join {
-  /// Client id
   pub id: usize,
-  /// Room name
   pub name: String,
 }
 
@@ -68,6 +62,11 @@ pub struct ChatServer {
   sessions: HashMap<usize, Recipient<MessageStruct>>,
   rooms: HashMap<String, HashSet<usize>>,
   rng: RefCell<ThreadRng>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MessageResponse {
+  pub message: String
 }
 
 impl Default for ChatServer {
@@ -90,8 +89,11 @@ impl ChatServer {
     if let Some(sessions) = self.rooms.get(room) {
       for id in sessions {
         if *id != skip_id {
-          if let Some(addr) = self.sessions.get(id) {
-            let _ = addr.do_send(MessageStruct(message.to_owned()));
+          if let Some(addr) = self.sessions.get(id) { ;
+            let message = serde_json::to_string(&MessageResponse {
+              message: message.to_owned()
+            }).unwrap();
+            let _ = addr.do_send(MessageStruct(message));
           }
         }
       }
@@ -135,10 +137,7 @@ impl Handler<Disconnect> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
-    println!("Someone disconnected");
-
     let mut rooms: Vec<String> = Vec::new();
-
     // remove address
     if self.sessions.remove(&msg.id).is_some() {
       // remove session from all rooms
