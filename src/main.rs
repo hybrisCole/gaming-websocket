@@ -109,7 +109,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WsSession {
               name: self.room.clone(),
             });
             let message = serde_json::to_string(&chat_server::MessageResponse {
-              message: "you joined".to_owned()
+              message: format!("{} joined", payload.name.to_owned())
             }).unwrap();
             ctx.text(message);
           },
