@@ -25,6 +25,8 @@ impl Message for Connect {
 
 pub struct Disconnect {
   pub id: usize,
+  pub name: String,
+  pub user: String
 }
 
 impl Message for Disconnect {
@@ -35,6 +37,7 @@ pub struct ClientMessage {
   pub id: usize,
   pub msg: String,
   pub room: String,
+  pub user: String
 }
 
 impl Message for ClientMessage {
@@ -50,6 +53,7 @@ impl Message for ListRooms {
 pub struct Join {
   pub id: usize,
   pub name: String,
+  pub user: String
 }
 
 impl Message for Join {
@@ -115,15 +119,10 @@ impl Handler<Connect> for ChatServer {
   type Result = usize;
 
   fn handle(&mut self, msg: Connect, _: &mut Context<Self>) -> Self::Result {
-    println!("Someone joined");
-
     // notify all users in same room
-    self.send_message(&"Main".to_owned(), "Someone joined", 0);
-
     // register session with random id
     let id = self.rng.borrow_mut().gen::<usize>();
     self.sessions.insert(id, msg.addr);
-
     // auto join session to Main room
     self.rooms.get_mut(&"Main".to_owned()).unwrap().insert(id);
 
@@ -137,19 +136,22 @@ impl Handler<Disconnect> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
+    let Disconnect { id, name, user} = msg;
     let mut rooms: Vec<String> = Vec::new();
     // remove address
-    if self.sessions.remove(&msg.id).is_some() {
+    if self.sessions.remove(&id).is_some() {
       // remove session from all rooms
       for (name, sessions) in &mut self.rooms {
-        if sessions.remove(&msg.id) {
+        if sessions.remove(&id) {
           rooms.push(name.to_owned());
         }
       }
     }
     // send message to other users
     for room in rooms {
-      self.send_message(&room, "Someone disconnected", 0);
+      if &room == &name {
+        self.send_message(&room, &(user.clone() + &" disconnected"), 0);
+      }
     }
   }
 }
@@ -159,7 +161,8 @@ impl Handler<ClientMessage> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: ClientMessage, _: &mut Context<Self>) {
-    self.send_message(&msg.room, msg.msg.as_str(), msg.id);
+    let ClientMessage { id, msg, room, user} = msg;
+    self.send_message(&room, &(user + ": " + &msg), id);
   }
 }
 
@@ -184,7 +187,7 @@ impl Handler<Join> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: Join, _: &mut Context<Self>) {
-    let Join { id, name } = msg;
+    let Join { id, name, user } = msg;
     let mut rooms = Vec::new();
 
     // remove session from all rooms
@@ -193,15 +196,11 @@ impl Handler<Join> for ChatServer {
         rooms.push(n.to_owned());
       }
     }
-    // send message to other users
-    for room in rooms {
-      self.send_message(&room, "Someone disconnected", 0);
-    }
 
     if self.rooms.get_mut(&name).is_none() {
       self.rooms.insert(name.clone(), HashSet::new());
     }
-    self.send_message(&name, "Someone connected", id);
+    self.send_message(&name, &(user + &" connected"), id);
     self.rooms.get_mut(&name).unwrap().insert(id);
   }
 }

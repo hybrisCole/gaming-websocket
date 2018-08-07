@@ -27,7 +27,7 @@ pub struct WsSession {
   /// connection.
   _hb: Instant,
   room: String,
-  name: Option<String>,
+  name: String,
 }
 
 impl Actor for WsSession {
@@ -57,7 +57,9 @@ impl Actor for WsSession {
     println!("websocket sesssion ended");
     info!("websocket sesssion ended");
     // notify chat server
-    ctx.state().addr.do_send(chat_server::Disconnect { id: self.id });
+    ctx.state().addr.do_send(chat_server::Disconnect { id: self.id,               name: self.room.clone(),
+      user: self.name.clone()
+    });
   }
 }
 
@@ -103,13 +105,14 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WsSession {
               name: "anon".to_owned(),
             });
             self.room = payload.room;
-            self.name =  Some(payload.name.to_owned());
+            self.name =  payload.name;
             ctx.state().addr.do_send(chat_server::Join {
               id: self.id,
               name: self.room.clone(),
+              user: self.name.clone()
             });
             let message = serde_json::to_string(&chat_server::MessageResponse {
-              message: format!("{} joined", payload.name.to_owned())
+              message: format!("{} joined", self.name.clone())
             }).unwrap();
             ctx.text(message);
           },
@@ -141,6 +144,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WsSession {
               id: self.id,
               msg: payload.message,
               room: self.room.clone(),
+              user: self.name.clone()
             })
           },
           _ => ctx.text(format!("{{\"message\": \"Whoops! I can\'t understand you message {:?} \"}}", text)),
@@ -166,7 +170,7 @@ fn chat_route(req: &HttpRequest<WsChatSessionState>) -> Result<HttpResponse, Err
       id: 0,
       _hb: Instant::now(),
       room: "Main".to_owned(),
-      name: None,
+      name: "QAnon".to_owned(),
     },
   )
 }
@@ -183,9 +187,9 @@ fn main() {
     App::with_state(state)
       .resource("/ws/", |r| r.route().f(chat_route))
       .middleware(middleware::Logger::default())
-  }).bind("127.0.0.1:8080")
+  }).bind("192.168.1.10:8080")
     .unwrap()
     .start();
-  println!("Started http server: 127.0.0.1:8080");
+  println!("Started http server: 192.168.1.10:8080");
   sys.run();
 }
