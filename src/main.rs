@@ -187,9 +187,9 @@ fn main() {
     App::with_state(state)
       .resource("/ws/", |r| r.route().f(chat_route))
       .middleware(middleware::Logger::default())
-  }).bind("192.168.1.10:8080")
+  }).bind("192.168.1.5:8080")
     .unwrap()
     .start();
-  println!("Started http server: 192.168.1.10:8080");
+  println!("StartedInstant::now http server: 192.168.1.5:8080");
   sys.run();
 }
