@@ -177,6 +177,7 @@ fn chat_route(req: &HttpRequest<WsChatSessionState>) -> Result<HttpResponse, Err
 
 
 fn main() {
+  let socket_url = "192.168.1.2:8080";
   let _ = env_logger::init();
   let sys = System::new("game-socket");
   let server: Addr<_> = Arbiter::start(|_| chat_server::ChatServer::default());
@@ -187,9 +188,9 @@ fn main() {
     App::with_state(state)
       .resource("/ws/", |r| r.route().f(chat_route))
       .middleware(middleware::Logger::default())
-  }).bind("192.168.1.5:8080")
+  }).bind(socket_url)
     .unwrap()
     .start();
-  println!("StartedInstant::now http server: 192.168.1.5:8080");
+  println!("{}", ["StartedInstant::now http server: ", socket_url].join(" ") );
   sys.run();
 }

@@ -2,7 +2,8 @@
 //! And manages available rooms. Peers send messages to other peers in same
 //! room through `ChatServer`.
 extern crate serde_json;
-use rand::{self, Rng, ThreadRng};
+use rand::{self, Rng};
+use rand::prelude::{ThreadRng};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use actix_web::actix::*;
