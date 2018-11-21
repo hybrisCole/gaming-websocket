@@ -1,64 +1,21 @@
 //! `ChatServer` is an actor. It maintains list of connection client session.
 //! And manages available rooms. Peers send messages to other peers in same
 //! room through `ChatServer`.
+
 extern crate serde_json;
-use actix_web::actix::Message;
 use actix_web::actix::*;
 use rand::prelude::ThreadRng;
 use rand::{self, Rng};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use message::disconnect::Disconnect;
+use message::message_struct::MessageStruct;
+use message::connect::Connect;
+use message::message_struct::MessageResponse;
+use message::client_message::ClientMessage;
+use message::list_rooms::ListRooms;
+use message::join::Join;
 
-pub struct MessageStruct(pub String);
-
-impl Message for MessageStruct {
-    type Result = ();
-}
-
-pub struct Connect {
-    pub addr: Recipient<MessageStruct>,
-}
-
-impl Message for Connect {
-    type Result = usize;
-}
-
-pub struct Disconnect {
-    pub id: usize,
-    pub name: String,
-    pub user: String,
-}
-
-impl Message for Disconnect {
-    type Result = ();
-}
-
-pub struct ClientMessage {
-    pub id: usize,
-    pub msg: String,
-    pub room: String,
-    pub user: String,
-}
-
-impl Message for ClientMessage {
-    type Result = ();
-}
-
-pub struct ListRooms;
-
-impl Message for ListRooms {
-    type Result = Vec<String>;
-}
-
-pub struct Join {
-    pub id: usize,
-    pub name: String,
-    pub user: String,
-}
-
-impl Message for Join {
-    type Result = ();
-}
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
@@ -66,11 +23,6 @@ pub struct ChatServer {
     sessions: HashMap<usize, Recipient<MessageStruct>>,
     rooms: HashMap<String, HashSet<usize>>,
     rng: RefCell<ThreadRng>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct MessageResponse {
-    pub message: String,
 }
 
 impl Default for ChatServer {

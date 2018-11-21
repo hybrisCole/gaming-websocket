@@ -13,22 +13,23 @@ extern crate serde_json;
 extern crate tokio_core;
 extern crate tokio_io;
 
+mod session;
+mod message;
+mod command;
+mod chat_server;
+
 use actix_web::actix::*;
 use actix_web::server::HttpServer;
 use actix_web::{middleware, ws, App, Error, HttpRequest, HttpResponse};
 use std::time::Instant;
+use message::disconnect::Disconnect;
+use message::connect::Connect;
+use message::message_struct::MessageResponse;
+use message::client_message::ClientMessage;
+use message::list_rooms::ListRooms;
+use message::join::Join;
 
-mod chat_server;
-mod command;
-
-pub struct WsSession {
-    id: usize,
-    /// Client must send ping at least once per 10 seconds, otherwise we drop
-    /// connection.
-    _hb: Instant,
-    room: String,
-    name: String,
-}
+use session::ws_session::WsSession;
 
 impl Actor for WsSession {
     type Context = ws::WebsocketContext<Self, WsChatSessionState>;
@@ -39,7 +40,7 @@ impl Actor for WsSession {
         let addr: Addr<_> = ctx.address();
         ctx.state()
             .addr
-            .send(chat_server::Connect {
+            .send(Connect {
                 addr: addr.recipient(),
             })
             .into_actor(self)
@@ -57,7 +58,7 @@ impl Actor for WsSession {
         println!("websocket sesssion ended");
         info!("websocket sesssion ended");
         // notify chat server
-        ctx.state().addr.do_send(chat_server::Disconnect {
+        ctx.state().addr.do_send(Disconnect {
             id: self.id,
             name: self.room.clone(),
             user: self.name.clone(),
@@ -82,9 +83,9 @@ struct ListChatResponse {
 }
 
 /// Handle messages from chat server, we simply send it to peer websocket
-impl Handler<chat_server::MessageStruct> for WsSession {
+impl Handler<message::message_struct::MessageStruct> for WsSession {
     type Result = ();
-    fn handle(&mut self, msg: chat_server::MessageStruct, ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: message::message_struct::MessageStruct, ctx: &mut Self::Context) {
         ctx.text(msg.0);
     }
 }
@@ -111,12 +112,12 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WsSession {
                             });
                         self.room = payload.room;
                         self.name = payload.name;
-                        ctx.state().addr.do_send(chat_server::Join {
+                        ctx.state().addr.do_send(Join {
                             id: self.id,
                             name: self.room.clone(),
                             user: self.name.clone(),
                         });
-                        let message = serde_json::to_string(&chat_server::MessageResponse {
+                        let message = serde_json::to_string(&MessageResponse {
                             message: format!("{} joined", self.name.clone()),
                         })
                         .unwrap();
@@ -125,7 +126,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WsSession {
                     "command:chat:list" => ctx
                         .state()
                         .addr
-                        .send(chat_server::ListRooms)
+                        .send(ListRooms)
                         .into_actor(self)
                         .then(|res, _, ctx| {
                             match res {
@@ -147,7 +148,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WsSession {
                             .unwrap_or(MessageChatPayload {
                                 message: "msg".to_owned(),
                             });
-                        ctx.state().addr.do_send(chat_server::ClientMessage {
+                        ctx.state().addr.do_send(ClientMessage {
                             id: self.id,
                             msg: payload.message,
                             room: self.room.clone(),
@@ -186,7 +187,8 @@ fn chat_route(req: &HttpRequest<WsChatSessionState>) -> Result<HttpResponse, Err
 }
 
 fn main() {
-    let socket_url = "192.168.1.2:8080";
+    // let socket_url = "192.168.1.2:8080";
+    let socket_url = "127.0.0.1:8080";
     env_logger::init();
     let sys = System::new("game-socket");
     let server: Addr<_> = Arbiter::start(|_| chat_server::ChatServer::default());
