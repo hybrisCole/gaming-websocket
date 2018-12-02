@@ -4,18 +4,17 @@
 
 extern crate serde_json;
 use actix_web::actix::*;
+use message::client_message::ClientMessage;
+use message::connect::Connect;
+use message::disconnect::Disconnect;
+use message::join::Join;
+use message::list_rooms::ListRooms;
+use message::message_struct::MessageResponse;
+use message::message_struct::MessageStruct;
 use rand::prelude::ThreadRng;
 use rand::{self, Rng};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use message::disconnect::Disconnect;
-use message::message_struct::MessageStruct;
-use message::connect::Connect;
-use message::message_struct::MessageResponse;
-use message::client_message::ClientMessage;
-use message::list_rooms::ListRooms;
-use message::join::Join;
-
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
