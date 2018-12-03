@@ -9,9 +9,8 @@ use message::disconnect::Disconnect;
 use message::command::Command;
 use message::client_message::ClientMessage;
 use message::message_struct::MessageResponse;
-use message::list_rooms::ListRooms;
 use message::join::Join;
-use message::{JoinChatPayload, ListChatResponse, MessageChatPayload};
+use message::{JoinChatPayload, MessageChatPayload};
 
 pub struct WsSession {
     pub id: usize,
@@ -98,26 +97,6 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WsSession {
               .unwrap();
             ctx.text(message);
           }
-          "command:chat:list" => ctx
-            .state()
-            .addr
-            .send(ListRooms)
-            .into_actor(self)
-            .then(|res, _, ctx| {
-              match res {
-                Ok(rooms) => {
-                  let chat_list = ListChatResponse {
-                    list: rooms.to_owned(),
-                  };
-                  let chat_list_response =
-                    serde_json::to_string(&chat_list).unwrap();
-                  ctx.text(chat_list_response);
-                }
-                _ => println!("Something is wrong"),
-              }
-              fut::ok(())
-            })
-            .wait(ctx),
           "command:chat:message" => {
             let payload: MessageChatPayload = serde_json::from_str(&cmd.payload)
               .unwrap_or(MessageChatPayload {

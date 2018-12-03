@@ -5,7 +5,7 @@ Description=Rust WebSocket
 After=network.target
 
 [Service]
-ExecStart=/root/.cargo/bin/cargo run --manifest-path /root/gaming-websocket/Cargo.toml
+ExecStart=/root/.cargo/bin/cargo run --release --manifest-path /root/gaming-websocket/Cargo.toml
 #ExecStop=/home/george/.npm-global/bin/forever stop /root/node/node_modules/.bin/www
 #Restart=always
 #RestartSec=10                       # Restart service after 10 seconds if node service crashes

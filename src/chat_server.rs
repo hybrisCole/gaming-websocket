@@ -8,7 +8,6 @@ use message::client_message::ClientMessage;
 use message::connect::Connect;
 use message::disconnect::Disconnect;
 use message::join::Join;
-use message::list_rooms::ListRooms;
 use message::message_struct::MessageResponse;
 use message::message_struct::MessageStruct;
 use rand::prelude::ThreadRng;
@@ -24,6 +23,25 @@ pub struct ChatServer {
     rng: RefCell<ThreadRng>,
 }
 
+impl ChatServer {
+  /// Send message to all users in the room
+  fn send_message(&self, room: &str, message: &str, skip_id: usize) {
+    if let Some(sessions) = self.rooms.get(room) {
+      for id in sessions {
+        if *id != skip_id {
+          if let Some(addr) = self.sessions.get(id) {
+            let message = serde_json::to_string(&MessageResponse {
+              message: message.to_owned(),
+            })
+              .unwrap();
+            let _ = addr.do_send(MessageStruct(message));
+          }
+        }
+      }
+    }
+  }
+}
+
 impl Default for ChatServer {
     fn default() -> ChatServer {
         // default room
@@ -34,25 +52,6 @@ impl Default for ChatServer {
             sessions: HashMap::new(),
             rng: RefCell::new(rand::thread_rng()),
             rooms,
-        }
-    }
-}
-
-impl ChatServer {
-    /// Send message to all users in the room
-    fn send_message(&self, room: &str, message: &str, skip_id: usize) {
-        if let Some(sessions) = self.rooms.get(room) {
-            for id in sessions {
-                if *id != skip_id {
-                    if let Some(addr) = self.sessions.get(id) {
-                        let message = serde_json::to_string(&MessageResponse {
-                            message: message.to_owned(),
-                        })
-                        .unwrap();
-                        let _ = addr.do_send(MessageStruct(message));
-                    }
-                }
-            }
         }
     }
 }
@@ -120,21 +119,6 @@ impl Handler<ClientMessage> for ChatServer {
             user,
         } = msg;
         self.send_message(&room, &(user + ": " + &msg), id);
-    }
-}
-
-/// Handler for `ListRooms` message.
-impl Handler<ListRooms> for ChatServer {
-    type Result = MessageResult<ListRooms>;
-
-    fn handle(&mut self, _: ListRooms, _: &mut Context<Self>) -> Self::Result {
-        let mut rooms = Vec::new();
-
-        for key in self.rooms.keys() {
-            rooms.push(key.to_owned())
-        }
-
-        MessageResult(rooms)
     }
 }
 
