@@ -22,7 +22,6 @@ use actix_web::server::HttpServer;
 use actix_web::{middleware, ws, App, Error, HttpRequest, HttpResponse};
 
 use message::session_state::WsChatSessionState;
-use std::time::Instant;
 
 use session::ws_session::WsSession;
 
@@ -32,7 +31,6 @@ fn chat_route(req: &HttpRequest<WsChatSessionState>) -> Result<HttpResponse, Err
         req,
         WsSession {
             id: 0,
-            _hb: Instant::now(),
             room: "Main".to_owned(),
             name: "QAnon".to_owned(),
         },

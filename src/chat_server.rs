@@ -8,6 +8,7 @@ use message::client_message::ClientMessage;
 use message::connect::Connect;
 use message::disconnect::Disconnect;
 use message::join::Join;
+use message::keep_alive::KeepAlive;
 use message::message_struct::MessageResponse;
 use message::message_struct::MessageStruct;
 use rand::prelude::ThreadRng;
@@ -24,22 +25,37 @@ pub struct ChatServer {
 }
 
 impl ChatServer {
-  /// Send message to all users in the room
-  fn send_message(&self, room: &str, message: &str, skip_id: usize) {
-    if let Some(sessions) = self.rooms.get(room) {
-      for id in sessions {
-        if *id != skip_id {
-          if let Some(addr) = self.sessions.get(id) {
-            let message = serde_json::to_string(&MessageResponse {
-              message: message.to_owned(),
-            })
-              .unwrap();
-            let _ = addr.do_send(MessageStruct(message));
-          }
+    /// Send message to all users in the room
+    fn send_message(&self, room: &str, message: &str, skip_id: usize) {
+        if let Some(sessions) = self.rooms.get(room) {
+            for id in sessions {
+                if *id != skip_id {
+                    if let Some(addr) = self.sessions.get(id) {
+                        let message = serde_json::to_string(&MessageResponse {
+                            message: message.to_owned(),
+                        })
+                        .unwrap();
+                        let _ = addr.do_send(MessageStruct(message));
+                    }
+                }
+            }
         }
-      }
     }
-  }
+    fn send_message_id(&self, room: &str, message: &str, send_id: usize) {
+        if let Some(sessions) = self.rooms.get(room) {
+            for id in sessions {
+                if *id == send_id {
+                    if let Some(addr) = self.sessions.get(id) {
+                        let message = serde_json::to_string(&MessageResponse {
+                            message: message.to_owned(),
+                        })
+                        .unwrap();
+                        let _ = addr.do_send(MessageStruct(message));
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Default for ChatServer {
@@ -104,6 +120,15 @@ impl Handler<Disconnect> for ChatServer {
                 self.send_message(&room, &(user.clone() + " disconnected"), 0);
             }
         }
+    }
+}
+
+impl Handler<KeepAlive> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: KeepAlive, _: &mut Context<Self>) {
+        let KeepAlive { id, room, secs } = msg;
+        self.send_message_id(&room, &secs.to_string(), id);
     }
 }
 
