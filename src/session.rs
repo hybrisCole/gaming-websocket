@@ -1,16 +1,16 @@
+use crate::message::ClientMessage;
+use crate::message::Command;
+use crate::message::Connect;
+use crate::message::Disconnect;
+use crate::message::Join;
+use crate::message::KeepAlive;
+use crate::message::MessageResponse;
+use crate::message::MessageStruct;
+use crate::message::WsChatSessionState;
+use crate::message::{JoinChatPayload, MessageChatPayload};
 use actix_web::actix::Addr;
 use actix_web::actix::*;
 use actix_web::ws;
-use message::client_message::ClientMessage;
-use message::command::Command;
-use message::connect::Connect;
-use message::disconnect::Disconnect;
-use message::join::Join;
-use message::keep_alive::KeepAlive;
-use message::message_struct::MessageResponse;
-use message::message_struct::MessageStruct;
-use message::session_state::WsChatSessionState;
-use message::{JoinChatPayload, MessageChatPayload};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct WsSession {

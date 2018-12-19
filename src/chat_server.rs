@@ -1,16 +1,15 @@
 //! `ChatServer` is an actor. It maintains list of connection client session.
 //! And manages available rooms. Peers send messages to other peers in same
 //! room through `ChatServer`.
-
 extern crate serde_json;
+use crate::message::ClientMessage;
+use crate::message::Connect;
+use crate::message::Disconnect;
+use crate::message::Join;
+use crate::message::KeepAlive;
+use crate::message::MessageResponse;
+use crate::message::MessageStruct;
 use actix_web::actix::*;
-use message::client_message::ClientMessage;
-use message::connect::Connect;
-use message::disconnect::Disconnect;
-use message::join::Join;
-use message::keep_alive::KeepAlive;
-use message::message_struct::MessageResponse;
-use message::message_struct::MessageStruct;
 use rand::prelude::ThreadRng;
 use rand::{self, Rng};
 use std::cell::RefCell;

@@ -21,11 +21,10 @@ use actix_web::actix::*;
 use actix_web::server::HttpServer;
 use actix_web::{middleware, ws, App, Error, HttpRequest, HttpResponse};
 
-use message::session_state::WsChatSessionState;
+use crate::message::WsChatSessionState;
 
-use session::ws_session::WsSession;
+use crate::session::WsSession;
 
-/// Entry point for our route
 fn chat_route(req: &HttpRequest<WsChatSessionState>) -> Result<HttpResponse, Error> {
     ws::start(
         req,
